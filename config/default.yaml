@@ -9,7 +9,7 @@ MODEL:
     USE_BATCH_NORM: False
   TEMPORAL:
     HIDDEN_DIM: 128
-    NUM_LAYERS: 4
+    NUM_LAYERS: 2
     MAX_DELTA_T: 40
     ADDING_TYPE: 0
   SWIN_TRANSFORMER:
@@ -61,7 +61,7 @@ EARLY_STOPPING:
 
 DATA:
   WINDOW_LENGTH: 7
-  DATA_IDX_DIR: /mnt/disk1/tunm/Subseasional_Forecasting/scaler
+  DATA_IDX_DIR: /mnt/disk1/nxmanh/Hydrometeology/Subseasonal_Prediction/data/data789_seed52
   GAUGE_DATA_PATH: /mnt/disk1/env_data/Gauge_thay_Tan/Final_Data.csv
   NPYARR_DIR: /mnt/disk1/env_data/S2S_0.125/nparr/Step24h
   PROCESSED_ECMWF_DIR: /mnt/disk1/env_data/S2S_0.125

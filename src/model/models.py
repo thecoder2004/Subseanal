@@ -152,19 +152,7 @@ class SwinTransformer(nn.Module):
         self.prediction_head = PredictionHead(self.embed_dim,
                                               use_layer_norm=config.MODEL.USE_LAYER_NORM,
                                               dropout=self.dropout)
-        self.apply(self._init_weights)
 
-    @staticmethod
-    def _init_weights(m: nn.Module):
-        """Áp dụng Xavier cho Conv/Linear và khởi tạo 0 cho bias."""
-        if isinstance(m, (nn.Linear, nn.Conv2d, nn.ConvTranspose2d)):
-            nn.init.xavier_uniform_(m.weight)          # hoặc xavier_normal_
-            if m.bias is not None:
-                nn.init.zeros_(m.bias)
-        # Khởi tạo riêng cho tham số nn.Parameter không nằm trong module
-        if isinstance(m, SwinTransformer):
-            if hasattr(m, 'delta_t'):
-                nn.init.xavier_uniform_(m.delta_t)
     def cal_num_patches(self, img_size):
         h, w = img_size[0], img_size[1]
         pad_h = (self.patch_size - h % self.patch_size) % self.patch_size
@@ -743,8 +731,7 @@ class SwinTransformer_Ver4(nn.Module):
         x = x.view(batch_size * n_ts, n_ft, h, w)  # (batch_size * n_ts, n_ft, h, w)
         
         x = self.channel_attn(x)
-        
-        shift_window = self.patch_size // 2
+
         # Step 0: Pad the input to make h and w divisible by patch_size
         pad_h = (self.patch_size - h % self.patch_size) % self.patch_size
         pad_w = (self.patch_size - w % self.patch_size) % self.patch_size
@@ -757,17 +744,14 @@ class SwinTransformer_Ver4(nn.Module):
 
         # Step 2: Position embedding
         x = self.pos_embed(x)  # (batch_size * n_ts, num_patches, embed_dim)
-        
+
         # Step 3: Reshape for window-based attention
         h_patch = padded_h // self.patch_size
         w_patch = padded_w // self.patch_size
         # resize_transform = transforms.Resize((224, 224))
         # input_tensor_resized = resize_transform(x)
-        
         x = self.spatial_encoder(x)
-        
         # Step 4: Apply window-based multi-head attention
-        # x = x.reshape(-1, h_patch, w_patch, self.embed_dim)
         # x = self.window_attention(x)  # (batch_size * n_ts, h_patch, w_patch, embed_dim)
         
         
@@ -781,7 +765,6 @@ class SwinTransformer_Ver4(nn.Module):
         x = self.add_prompt_vecs(x, lead_time) # (batch_size, h_patch, w_patch, embed_dim)
         
         # Step 5: Upsample to original resolution
-        
         x = self.upsample(x)  # (batch_size, h, w, embed_dim)
         x = x[:, :h, :w, :] # (batch_size, h, w, embed_dim)
 
@@ -789,7 +772,7 @@ class SwinTransformer_Ver4(nn.Module):
         x = self.prediction_head(x) # (batch_size, h, w)
 
         return x 
-
+  
 class SwinTransformer_Ver5(nn.Module):
     def __init__(self, config):
         super(SwinTransformer_Ver5, self).__init__()

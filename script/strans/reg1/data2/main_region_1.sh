@@ -1,5 +1,5 @@
 CUDA_VISIBLE_DEVICES=0 python main.py --cfg config/default.yaml  \
-        --name strans-v2 \
+        --name strans \
         --in_channel 13 \
         --adding_type 0 \
         --dropout 0.25 \

@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.preprocessing import RobustScaler, MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler
 import os
 import pandas as pd
 from datetime import datetime, timedelta
@@ -24,7 +24,7 @@ def get_scaler(config):
     
     # If scaler files do not exist, create new scalers
     print("Creating scalers...")
-    os.makedirs(f"{config.DATA.DATA_IDX_DIR}", exist_ok=True)
+    
     # Create a list of dates from 2022-01-03
     start_date = datetime(2022, 1, 3)
     end_date = datetime(2022, 12, 31)
@@ -38,8 +38,8 @@ def get_scaler(config):
         step_index = 1 - step_index
     
     # Filter dates to only include July, August, and September
-    dates = [date for date in dates if int(date.split('-')[1]) in [6, 7, 8, 9]]
-    # dates = [date for date in dates if int(date.split('-')[1]) in [9, 10, 11]]
+    # dates = [date for date in dates if int(date.split('-')[1]) in [6, 7, 8, 9]]
+    dates = [date for date in dates if int(date.split('-')[1]) in [9, 10, 11]]
     
     # Initialize scalers for 13 features
     scalers = [MinMaxScaler(feature_range=(-1, 1)) for _ in range(13)]
@@ -56,7 +56,6 @@ def get_scaler(config):
                     scalers[i].fit(feature_data)
                 else:
                     scalers[i].partial_fit(feature_data)
-                    #scalers[i].fit(feature_data)
             first_pass = False
     
     # Convert scalers to numpy array

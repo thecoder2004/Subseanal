@@ -97,7 +97,7 @@ def train_func(model, train_dataset, valid_dataset, early_stopping, loss_func, o
         epoch_loss = []
         if not early_stopping.early_stop:
             model.train()
-            for batch_idx, data in enumerate(tqdm(train_dataloader)):
+            for data in tqdm(train_dataloader):
                 optimizer.zero_grad()
                 input_data, lead_time, y_train = data['x'].to(device), data['lead_time'].to(device), data['y'].to(device)
                 y_ = model([input_data, lead_time])
@@ -106,21 +106,8 @@ def train_func(model, train_dataset, valid_dataset, early_stopping, loss_func, o
                 loss = loss_func(y_.squeeze(), y_train.squeeze())
 
                 loss.backward()
-                # ---------- ADD-ON ② ----------
-                if config.DEBUG and batch_idx == 0:
-                    print(f"\n=== GRAD STATS | ep {epoch} ===")
-                    for name, p in model.named_parameters():
-                        if p.grad is None: continue
-                        if any(k in name for k in ["patch_embed", "head"]):
-                            print(f"{name:<55} mean={p.grad.mean():+.2e} "
-                                f"std={p.grad.std():.2e} norm={p.grad.norm():.2e}")
-
                 optimizer.step()
                 
-                if config.DEBUG and batch_idx % 20 == 0:
-                    current_lr = optimizer.param_groups[0]['lr']
-                    print(f"[ep {epoch:02d} | {batch_idx:04d}] "
-                        f"loss={loss.item():.3f} lr={current_lr:.2e}")
                 epoch_loss.append(loss.item())
             
             train_epoch_loss = sum(epoch_loss) / len(epoch_loss)
@@ -175,4 +162,3 @@ def train_func(model, train_dataset, valid_dataset, early_stopping, loss_func, o
         'learning_rates': results['learning_rates'],
         'scheduler_type': config.LRS.NAME if config.LRS.USE_LRS else 'None'
     }
-    
