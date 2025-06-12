@@ -140,10 +140,10 @@ def main():
     # Init wandb session
     init_wandb(config)
         
-    results = train_func.train_func(model, train_dataset, valid_dataset, early_stopping, loss_func, optimizer, config, device)
+    #results = train_func.train_func(model, train_dataset, valid_dataset, early_stopping, loss_func, optimizer, config, device)
     
-    print(f"Best Validation Loss: {results['best_valid_loss']:.4f}")
-    print(f"Final Train Loss: {results['final_train_loss']:.4f}")
+    #print(f"Best Validation Loss: {results['best_valid_loss']:.4f}")
+    #print(f"Final Train Loss: {results['final_train_loss']:.4f}")
     
     utils.load_model(model, f"saved_checkpoints/{config.WANDB.GROUP_NAME}/checkpoint/{config.WANDB.SESSION_NAME}.pt")
     test_func.test_func(model, test_dataset, loss_func, config, output_scaler, device)

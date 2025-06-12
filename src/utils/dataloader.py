@@ -122,7 +122,7 @@ class CustomDataset(Dataset):
         
         #return {'x': ecmwf_data, 'lead_time': lead_time, 'y': ground_truth}
         
-        return {'x': ecmwf_data, 'lead_time': lead_time, 'y': ground_truth, 'x_leadtime': x_leadtime}
+        return {'x': ecmwf_data, 'lead_time': lead_time, 'y': ground_truth, 'x_leadtime': x_leadtime, 'ecmwf': self.get_ecmwf(ecmwf_path=ecmwf_path, year=year, lead_time=lead_time).transpose(1, 0, 2, 3)}
     
     def __len__(self):
         return len(self.idx_df)

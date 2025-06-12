@@ -47,6 +47,7 @@ def test_func(model, test_dataset, criterion, config, output_scaler, device):
     model.eval() 
     list_prd = []
     list_grt = []
+    list_ecmwf = []
     epoch_loss = 0
     model.to(device)
     test_dataloader = DataLoader(test_dataset, batch_size=config.TRAIN.BATCH_SIZE, shuffle=False, num_workers=config.TRAIN.NUMBER_WORKERS, collate_fn=utils.custom_collate_fn)
@@ -56,38 +57,50 @@ def test_func(model, test_dataset, criterion, config, output_scaler, device):
     with torch.no_grad():
         
         for data in tqdm(test_dataloader):
-            input_data, lead_time, y_grt = data['x'].to(device), data['lead_time'].to(device), data['y'].to(device)
+            input_data, lead_time, y_grt, ecmwf = data['x'].to(device), data['lead_time'].to(device), data['y'].to(device), data['ecmwf'].to(device)
+            ecmwf = ecmwf[:,:,-1,:,:]# (B,7, H, W)
+            ecmwf = torch.mean(ecmwf, dim=1) # (B, H, W)
+            ecmwf = torch.unsqueeze(ecmwf, dim=-1) # Sử dụng torch.unsqueeze và dim=-1
+            
             y_prd = model([input_data, lead_time]) # (batch_size, 137, 121, 1)
+            
             y_prd = get_station_from_grid(y_prd, y_grt, config) # (batch_size, num_station, 1)
+            ecmwf = get_station_from_grid(ecmwf, y_grt, config)
             y_prd = y_prd[:,:,0] # (batch_size, num_station)
             y_grt = y_grt[:,:,0] # (batch_size, num_station)
+            ecmwf = ecmwf[:,:,0] # (batch_size, num_station)
             batch_loss = criterion(torch.squeeze(y_prd), torch.squeeze(y_grt))
             y_prd = y_prd.cpu().detach().numpy()
             y_grt = y_grt.cpu().detach().numpy()
+            ecmwf = ecmwf.cpu().detach().numpy()
             if config.TRAIN.OUTPUT_NORM:
                 y_prd = output_scaler.inverse_transform(y_prd)
                 y_grt = output_scaler.inverse_transform(y_grt)
             
             y_prd = np.squeeze(y_prd)
             y_grt = np.squeeze(y_grt)
+            ecmwf = np.squeeze(ecmwf)
             list_prd.append(y_prd)
             list_grt.append(y_grt)
-
+            list_ecmwf.append(ecmwf)
             epoch_loss += batch_loss.item()
             # breakpoint()
     list_prd = np.concatenate(list_prd, 0)
     list_grt = np.concatenate(list_grt,0)
+    list_ecmwf = np.concatenate(list_ecmwf, 0)
     # breakpoint()
     mae, mse, mape, rmse, r2, corr_ = cal_acc(list_prd, list_grt)
+    mae_ecm, mse_ecm, mape_ecm, rmse_ecm, r2_ecm, corr_ecm = cal_acc(list_ecmwf, list_grt)
     # data = [[pred, gt] for pred, gt in zip(list_prd, list_grt)]
     plot_idx = [i for i in range(10)]
     if config.WANDB.STATUS:
         wandb.log({"mae":mae, "mse":mse, "mape":mape, "rmse":rmse, "r2":r2, "corr":corr_})
-
+        wandb.log({"mae_ecm":mae_ecm, "mse_ecm":mse_ecm, "mape_ecm":mape_ecm, "rmse_ecm":rmse_ecm, "r2_ecm":r2_ecm, "corr_ecm":corr_ecm})
         for i in plot_idx:
             plt.figure(figsize=(20, 5))
             plt.plot(list_prd[i], label='Predictions', marker='o')
             plt.plot(list_grt[i], label='Ground Truths', marker='x')
+            plt.plot(list_ecmwf[i], label="ECMWF", marker = 's')
             plt.xlabel('Sample Index')
             plt.ylabel('Value')
             plt.title('Predictions vs Ground Truths')
@@ -102,14 +115,18 @@ def test_func(model, test_dataset, criterion, config, output_scaler, device):
         # Flatten both arrays to 1D
         flattened1 = list_prd.flatten()  # Shape: (64 * 169,)
         flattened2 = list_grt.flatten()  # Shape: (64 * 169,)
-
-        data = np.stack([flattened1, flattened2], 0)
-        table1 = wandb.Table(data=data.T, columns=["Prediction", "Groundtruth"] )
+        flattened3 = list_ecmwf.flatten() # Shape: (64 * 169,)
+        data1 = np.stack([flattened1, flattened2], 0)
+        table1 = wandb.Table(data1=data1.T, columns=["Prediction", "Groundtruth"] )
         wandb.log({"Output/Table": table1})
+        data2 = np.stack([flattened3, flattened2], 0)
+        table2 = wandb.Table(data2=data2.T, columns=["Prediction", "Groundtruth"] )
+        wandb.log({"Output/Table": table2})
         wandb.finish()
 
 
-    print(f"MSE: {mse} MAE:{mae} MAPE:{mape} RMSE:{rmse} R2:{r2} Corr:{corr_}")            
+    print(f"MSE: {mse} MAE:{mae} MAPE:{mape} RMSE:{rmse} R2:{r2} Corr:{corr_}")  
+    print(f"MSE_ecm: {mse_ecm} MAE_ecm:{mae_ecm} MAPE_ecm:{mape_ecm} RMSE_ecm:{rmse_ecm} R2_ecm:{r2_ecm} Corr_ecm:{corr_ecm}")           
     return 
 
 import matplotlib.pyplot as plt
